@@ -36,7 +36,7 @@ def run():
 
     sess = tf.Session()
     restorer = tf.train.Saver()
-    restorer.restore(sess, 'models/alexnet.ckpt')
+    restorer.restore(sess, 'models/vgg.ckpt')
 
     error = 0
 

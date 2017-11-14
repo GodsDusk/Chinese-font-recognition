@@ -52,7 +52,7 @@ def train(batch_size):
 
             writer.add_summary(summary, i)
 
-        saver.save(sess, './models/alexnet.ckpt')  
+        saver.save(sess, './models/vgg.ckpt')  
         
         
 
