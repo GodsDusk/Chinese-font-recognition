@@ -52,9 +52,6 @@ def train(batch_size):
 
             writer.add_summary(summary, i)
 
-        p, o = sess.run([pred, outputs], feed_dict={keep_prob:1.0})
-        print p
-        print o
         saver.save(sess, './models/alexnet.ckpt')  
         
         

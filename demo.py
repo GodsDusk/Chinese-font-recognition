@@ -22,8 +22,7 @@ def run():
     file_name = u'test.txt'
     # file_name = u'dataset/中国汉字大全.txt'
     texts = read_text(file_name)
-    print len(texts)
-    return
+
     fonts_dir = os.path.join('dataset', 'fonts')
     fonts = [os.path.join(os.getcwd(), fonts_dir, path) for path in os.listdir(fonts_dir)] 
 
