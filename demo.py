@@ -14,7 +14,26 @@ def generator_images(texts, fonts):
     for text in texts:
         for font in fonts:
             image, _ = draw_font(text, font, mode='test')
-            yield image 
+            yield image, text
+
+def show_errors(error_infos, fonts):
+
+    
+    length = len(error_infos)
+    labels = len(fonts)
+    for i in xrange(length):
+        text, pred = error_infos[i]
+        index = pred.index(max(pred))
+        for j in xrange(labels):
+            axis = plt.subplot(length, labels, i * labels + j + 1)
+            axis.axis('off')
+            font = fonts[j]
+            image, _ = draw_font(text, font, mode='test')
+            if index == j:
+                plt.title(str(pred))
+            plt.imshow(image)
+    plt.show()
+
 
 
 def run():
@@ -39,21 +58,23 @@ def run():
     restorer.restore(sess, 'models/vgg.ckpt')
 
     error = 0
-
-    for index, image in enumerate(images_gen):
+    error_texts = []
+    for index, info in enumerate(images_gen):
         
-        # plt.imshow(image)
+        image, text = info
         image = np.asarray(image)
         pred = sess.run(outputs, feed_dict={inputs:image})
         pred = np.squeeze(pred)
         label = np.squeeze(np.where(pred==np.max(pred)))
         if index % 2 != label:
+            error_texts.append((text, pred.tolist()))
             error += 1
+            
 
-    print float(error) / index
-
-        
-
+    print 'test num: {}, error num: {}, acc: {}'.format(index + 1, error, 1 - float(error) / index)
+    show_errors(error_texts, fonts)
+    
 
 if __name__ == '__main__':
     run()
+
