@@ -1,19 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import time
+import Queue
+import threading
 import tensorflow as tf 
 from dataset.read_data import read_data
 from nnets.vgg import vgg
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
-def train(batch_size):
+class_num = 2
+
+def data_pipline(batch_size):
+
 
     data_batch, annotation = read_data(batch_size)
     iterator = data_batch.make_initializable_iterator()
     inputs, outputs = iterator.get_next()
-    class_num = outputs.get_shape()[-1]
-    
+    with tf.Session() as sess:
+        sess.run(iterator.initializer)
+        for _ in xrange(250):
+            data = sess.run([inputs, outputs])
+            message.put(data)
+    message.put(None)
+
+def train():
+
+
+    inputs = tf.placeholder(tf.float32, shape=[None, 128, 128, 3])
+    outputs = tf.placeholder(tf.float32, shape=[None, class_num])
     tf.summary.image('inputs', inputs, 16)
 
     lr = tf.placeholder(tf.float32)
@@ -40,18 +56,29 @@ def train(batch_size):
 
         writer = tf.summary.FileWriter('./log/', sess.graph)
         sess.run(tf.global_variables_initializer())
-        sess.run(iterator.initializer)
         
-        
-        for i in xrange(1000):
+        i, stop_count = 0, 0
+        st = time.time()
+        while True:
+            i += 1
+
+            if stop_count == producer_num:
+                break
+
+            msg = message.get()
+            if msg is None:
+                stop_count += 1
+                continue
+
+            image, label = msg
             learning_rate = 1e-5 if i < 500 else 1e-5
-            sess.run(optimizer, feed_dict={lr:learning_rate, keep_prob:0.5})
-            if i % 50 == 0:
-                summary, acc, l = sess.run([merged, accuracy, cross_entropy], feed_dict={keep_prob:1.0})
-                print 'iter:{}, acc:{}, loss:{}'.format(i, acc, l)            
+            sess.run(optimizer, feed_dict={inputs:image, outputs:label, lr:learning_rate, keep_prob:0.5})
+            # if i % 50 == 0:
+            #     summary, acc, l = sess.run([merged, accuracy, cross_entropy], feed_dict={inputs:image, outputs:label ,keep_prob:1.0})
+            #     print 'iter:{}, acc:{}, loss:{}'.format(i, acc, l)            
 
-            writer.add_summary(summary, i)
-
+            #     writer.add_summary(summary, i)
+        print 'run time: ', time.time() - st
         saver.save(sess, './models/vgg.ckpt')  
         
         
@@ -61,4 +88,14 @@ def train(batch_size):
 if __name__ == '__main__':
     
     BATCH_SIZE = 128
-    train(BATCH_SIZE)
+    producer_num = 4
+    message = Queue.Queue(200)
+
+    for i in xrange(producer_num):
+        producer_name = 'p{}'.format(i)
+        locals()[producer_name] = threading.Thread(target=data_pipline, args=(BATCH_SIZE,))
+        locals()[producer_name].start()
+
+    c = threading.Thread(target=train)1
+    c.start()
+    message.join()
